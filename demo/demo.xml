@@ -1,0 +1,19 @@
+<odoo>
+    <data>
+        <record id="course0" model="cofficedo.course">
+            <field name="name">Course 0</field>
+            <field name="capacity">10</field>
+            <field name="description">This is one desc.</field>
+        </record>
+        <record id="course1" model="cofficedo.course">
+            <field name="name">Course 1</field>
+            <field name="capacity">30</field>
+            <field name="description">This is one desc.</field>
+        </record>
+        <record id="course2" model="cofficedo.course">
+            <field name="name">Course 2</field>
+            <field name="capacity">20</field>
+            <field name="description">This is one description for the last course</field>
+        </record>
+    </data>
+</odoo>
