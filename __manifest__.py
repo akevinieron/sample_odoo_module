@@ -24,7 +24,8 @@
     # always loaded
     'data': [
         # 'security/ir.model.access.csv',
-        'views/views.xml',
+        'views/cofficedo.xml',
+        'views/partner.xml',
         'views/templates.xml',
     ],
     # only loaded in demonstration mode
