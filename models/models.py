@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, fields, api
+from odoo import models, fields, api, exceptions
 
 class Course(models.Model):
     _name = 'cofficedo.course'
@@ -53,4 +53,10 @@ class Session(models.Model):
                     "message": "Increase seats or remove excess attendees"
                 },
             }
+
+    @api.constrains("instructor_id", "attendee_ids")
+    def _check_instructor_not_in_attendees(self):
+        for record in self:
+            if record.instructor_id and record.instructor_id in record.attendee_ids:
+                raise exceptions.ValidationError("A session's instructor can't be an attendee")
 
