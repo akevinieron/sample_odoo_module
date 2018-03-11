@@ -53,6 +53,7 @@ class Session(models.Model):
     attendee_ids = fields.Many2many('res.partner', string="Attendees")
 
     taken_seats = fields.Float(string="Taken seats", compute="_taken_seats")
+    end_date = fields.Date(string="End Date", store=True, compute="_get_end_date", inverse="_set_end_date")
 
     @api.depends("seats", "attendee_ids")
     def _taken_seats(self):
@@ -78,6 +79,26 @@ class Session(models.Model):
                     "message": "Increase seats or remove excess attendees"
                 },
             }
+
+    @api.depends("start_date", "duration")
+    def _get_end_date(self):
+        for record in self:
+            if not (record.start_date and record.duration):
+                record.end_date = record.start_date
+                continue
+
+            start = fields.Datetime.from_string(record.start_date)
+            duration = timedelta(days=record.duration, seconds=-1)
+            record.end_date = start + duration
+
+    def _set_end_date(self):
+        for record in self:
+            if not (record.start_date and record.end_date):
+                continue
+
+            start_date = fields.Datetime.from_string(record.start_date)
+            end_date = fields.Datetime.from_string(record.end_date)
+            record.duration = (end_date - start_date).days + 1
 
     @api.constrains("instructor_id", "attendee_ids")
     def _check_instructor_not_in_attendees(self):
