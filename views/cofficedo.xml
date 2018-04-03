@@ -127,7 +127,7 @@
       <field name="name">session.gantt</field>
       <field name="model">cofficedo.session</field>
       <field name="arch" type="xml">
-        <gantt string="Session Gantt" color="course_id"date_start="start_date" date_delay="hours" default_group_by='instructor_id'>
+        <gantt string="Session Gantt" color="course_id" date_start="start_date" date_delay="hours" default_group_by='instructor_id'>
           <field name="name"/>
         </gantt>
       </field>
