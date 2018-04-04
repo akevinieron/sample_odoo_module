@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, fields, api
+from datetime import timedelta
+from odoo import models, fields, api, exceptions
 
 class Course(models.Model):
     _name = 'cofficedo.course'
@@ -12,6 +13,30 @@ class Course(models.Model):
     responsible_id = fields.Many2one("res.users", ondelete="set null", string="Responsible", index=True)
     session_ids = fields.One2many("cofficedo.session", "course_id", string="Sessions")
 
+    @api.multi
+    def copy(self, default=None):
+        default = dict(default or {})
+
+        copied_count = self.search_count(
+            [("name", "=like", u"Copy of {}%".format(self.name))])
+        if not copied_count:
+            new_name = u"Copy of {}".format(self.name)
+        else:
+            new_name = u"Copy of {} ({})".format(self.name, copied_count)
+
+        default['name'] = new_name
+        return super(Course, self).copy(default)
+
+    _sql_constraints = [
+        ("name_description_check",
+         "CHECK(name != description)",
+         "The title of the course should not be the description"),
+
+        ("name_unique",
+         "UNIQUE(name)",
+         "The course title must be unique"),
+    ]
+
 
 class Session(models.Model):
     _name = 'cofficedo.session'
@@ -21,6 +46,7 @@ class Session(models.Model):
     duration = fields.Float(digits=(6,2), help="Duration in days")
     seats = fields.Integer(string="Number of seats")
     active = fields.Boolean(default=True)
+    color = fields.Integer()
 
     instructor_id = fields.Many2one('res.partner', string="Instructor",
         domain=["|", ("instructor","=",True),("category_id.name", "ilike", "Teacher")])
@@ -28,6 +54,11 @@ class Session(models.Model):
     attendee_ids = fields.Many2many('res.partner', string="Attendees")
 
     taken_seats = fields.Float(string="Taken seats", compute="_taken_seats")
+    end_date = fields.Date(string="End Date", store=True, compute="_get_end_date", inverse="_set_end_date")
+
+    hours = fields.Float(string="Duration in hours", compute="_get_hours", inverse="_set_hours")
+
+    attendees_count = fields.Integer(string="Attendees count", compute="_get_attendees_count", stored=True)
 
     @api.depends("seats", "attendee_ids")
     def _taken_seats(self):
@@ -53,4 +84,44 @@ class Session(models.Model):
                     "message": "Increase seats or remove excess attendees"
                 },
             }
+
+    @api.depends("start_date", "duration")
+    def _get_end_date(self):
+        for record in self:
+            if not (record.start_date and record.duration):
+                record.end_date = record.start_date
+                continue
+
+            start = fields.Datetime.from_string(record.start_date)
+            duration = timedelta(days=record.duration, seconds=-1)
+            record.end_date = start + duration
+
+    def _set_end_date(self):
+        for record in self:
+            if not (record.start_date and record.end_date):
+                continue
+
+            start_date = fields.Datetime.from_string(record.start_date)
+            end_date = fields.Datetime.from_string(record.end_date)
+            record.duration = (end_date - start_date).days + 1
+
+    @api.depends("duration")
+    def _get_hours(self):
+        for record in self:
+            record.hours = record.duration * 24
+
+    def _set_hours(self):
+        for record in self:
+            record.duration = record.hours / 24
+
+    @api.depends("attendee_ids")
+    def _get_attendees_count(self):
+        for record in self:
+            record.attendees_count = len(record.attendee_ids)
+
+    @api.constrains("instructor_id", "attendee_ids")
+    def _check_instructor_not_in_attendees(self):
+        for record in self:
+            if record.instructor_id and record.instructor_id in record.attendee_ids:
+                raise exceptions.ValidationError("A session's instructor can't be an attendee")
 
