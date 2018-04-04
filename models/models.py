@@ -57,6 +57,8 @@ class Session(models.Model):
 
     hours = fields.Float(string="Duration in hours", compute="_get_hours", inverse="_set_hours")
 
+    attendees_count = fields.Integer(string="Attendees count", compute="_get_attendees_count", stored=True)
+
     @api.depends("seats", "attendee_ids")
     def _taken_seats(self):
         for record in self:
@@ -111,7 +113,10 @@ class Session(models.Model):
         for record in self:
             record.duration = record.hours / 24
 
-        
+    @api.depends("attendee_ids")
+    def _get_attendees_count(self):
+        for record in self:
+            record.attendees_count = len(record.attendee_ids)
 
     @api.constrains("instructor_id", "attendee_ids")
     def _check_instructor_not_in_attendees(self):
